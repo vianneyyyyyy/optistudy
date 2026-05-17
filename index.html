@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f1729">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>OptiStudy</title>
+  <style>
+    :root {
+      --bg: #0f1729; --card: #1a2540; --card2: #1e2d4a;
+      --teal: #00e5c0; --purple: #7c5cbf; --blue: #4a9eff;
+      --green: #4cdb7e; --orange: #f5a623; --red: #e05a5a;
+      --text: #e8eaf0; --text2: #8a9bc0; --border: #2a3a5c;
+      --xp-int: #4a9eff; --xp-sante: #4cdb7e; --xp-vit: #f5a623;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 430px; margin: 0 auto; min-height: 100vh;
+      display: flex; flex-direction: column; overflow-x: hidden;
+    }
+    .header {
+      background: var(--card); padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header h1 { font-size: 22px; font-weight: 800; color: white; }
+    .header h1 span { color: var(--teal); }
+    .header .avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--purple), var(--teal));
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    .content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+    .screen { display: none; padding: 16px; }
+    .screen.active { display: block; }
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px; background: var(--card);
+      border-top: 1px solid var(--border); display: flex;
+      padding: 8px 0 12px; z-index: 100;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 3px; cursor: pointer; padding: 4px;
+      color: var(--text2); font-size: 10px; font-weight: 500; transition: color 0.2s;
+    }
+    .nav-item.active { color: var(--teal); }
+    .nav-item svg { width: 22px; height: 22px; }
+    .card {
+      background: var(--card); border-radius: 14px; padding: 16px;
+      margin-bottom: 12px; border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; color: var(--text2);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;
+    }
+    .level-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .level-num { font-size: 20px; font-weight: 800; }
+    .level-xp { font-size: 13px; color: var(--text2); }
+    .xp-bar-bg { background: var(--card2); border-radius: 100px; height: 8px; width: 100%; overflow: hidden; margin-bottom: 4px; }
+    .xp-bar { height: 100%; border-radius: 100px; transition: width 0.6s ease; }
+    .xp-bar.int { background: var(--xp-int); }
+    .xp-bar.sante { background: var(--xp-sante); }
+    .xp-bar.vit { background: var(--xp-vit); }
+    .xp-bar.total { background: linear-gradient(90deg, var(--purple), var(--teal)); }
+    .xp-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .xp-label span { font-size: 13px; }
+    .xp-label .val { font-size: 12px; color: var(--text2); }
+    .stats-row { display: flex; gap: 10px; margin-bottom: 12px; }
+    .stat-box {
+      flex: 1; background: var(--card2); border-radius: 12px;
+      padding: 12px; text-align: center; border: 1px solid var(--border);
+    }
+    .stat-box .icon { font-size: 22px; margin-bottom: 4px; }
+    .stat-box .val { font-size: 20px; font-weight: 800; }
+    .stat-box .lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+    .quest {
+      background: var(--card2); border-radius: 12px; padding: 14px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px; border: 1px solid var(--border); transition: opacity 0.3s;
+    }
+    .quest.done { opacity: 0.5; }
+    .quest-icon { font-size: 26px; flex-shrink: 0; }
+    .quest-info { flex: 1; }
+    .quest-info .name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+    .quest-info .desc { font-size: 12px; color: var(--text2); }
+    .xp-badge {
+      background: rgba(76,219,126,0.15); color: var(--green);
+      font-size: 11px; font-weight: 700; padding: 3px 8px;
+      border-radius: 100px; margin-top: 4px; display: inline-block;
+    }
+    .xp-badge.blue { background: rgba(74,158,255,0.15); color: var(--blue); }
+    .xp-badge.orange { background: rgba(245,166,35,0.15); color: var(--orange); }
+    .check-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--card); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .check-btn.done { background: var(--teal); border-color: var(--teal); }
+    .check-btn svg { width: 16px; height: 16px; }
+    .section-title { font-size: 17px; font-weight: 700; margin: 8px 0 12px; color: var(--teal); }
+    .pomo-container { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+    .pomo-ring { width: 200px; height: 200px; position: relative; margin-bottom: 24px; }
+    .pomo-ring svg { transform: rotate(-90deg); width: 200px; height: 200px; }
+    .pomo-ring circle { cx: 100; cy: 100; r: 88; fill: none; stroke-width: 10; }
+    .pomo-ring .bg-ring { stroke: var(--card2); }
+    .pomo-ring .progress-ring {
+      stroke: var(--teal); stroke-dasharray: 553; stroke-dashoffset: 0;
+      stroke-linecap: round; transition: stroke-dashoffset 1s linear;
+    }
+    .pomo-time {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 42px; font-weight: 800; font-variant-numeric: tabular-nums;
+    }
+    .pomo-phase {
+      font-size: 13px; color: var(--text2);
+      position: absolute; bottom: 30px; left: 50%;
+      transform: translateX(-50%); white-space: nowrap;
+    }
+    .btn { padding: 14px 32px; border-radius: 50px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; }
+    .btn-teal { background: var(--teal); color: #0f1729; }
+    .btn-teal:hover { filter: brightness(1.1); }
+    .btn-outline { background: transparent; color: var(--teal); border: 2px solid var(--teal); }
+    .btn-purple { background: var(--purple); color: white; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+    .sessions-count { font-size: 13px; color: var(--text2); text-align: center; margin-top: 12px; }
+    .sessions-dots { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+    .session-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--card2); border: 2px solid var(--border); transition: all 0.3s;
+    }
+    .session-dot.done { background: var(--teal); border-color: var(--teal); }
+    .input-field {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      color: var(--text); font-size: 14px; width: 100%; margin-bottom: 10px; outline: none;
+    }
+    .input-field:focus { border-color: var(--teal); }
+    .ingredient-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .ingredient-tag {
+      background: rgba(0,229,192,0.15); color: var(--teal);
+      padding: 5px 12px; border-radius: 100px; font-size: 13px;
+      font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+    .ingredient-tag span { cursor: pointer; font-size: 16px; }
+    .recipe-card { background: var(--card2); border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); }
+    .recipe-card .r-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .recipe-card .r-time { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+    .recipe-card .r-steps { font-size: 13px; color: var(--text2); line-height: 1.6; }
+    .recipe-card .r-xp { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .wb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .wb-input-card { background: var(--card2); border-radius: 12px; padding: 14px; border: 1px solid var(--border); }
+    .wb-input-card .wb-icon { font-size: 24px; margin-bottom: 6px; }
+    .wb-input-card .wb-lbl { font-size: 11px; color: var(--text2); margin-bottom: 8px; font-weight: 600; text-transform: uppercase; }
+    .stepper { display: flex; align-items: center; gap: 8px; }
+    .stepper-btn {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--border); border: none; color: var(--text);
+      font-size: 18px; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; transition: background 0.2s;
+    }
+    .stepper-btn:hover { background: var(--teal); color: #0f1729; }
+    .stepper-val { font-size: 22px; font-weight: 800; flex: 1; text-align: center; }
+    .stepper-unit { font-size: 11px; color: var(--text2); text-align: center; }
+    .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .badge-item { background: var(--card2); border-radius: 12px; padding: 14px 8px; text-align: center; border: 1px solid var(--border); }
+    .badge-item.locked { opacity: 0.35; filter: grayscale(1); }
+    .badge-item .b-icon { font-size: 30px; margin-bottom: 6px; }
+    .badge-item .b-name { font-size: 11px; font-weight: 600; }
+    .badge-item .b-desc { font-size: 9px; color: var(--text2); margin-top: 2px; }
+    .profile-header { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+    .profile-avatar {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--purple), var(--teal));
+      border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 28px; font-weight: 800; margin-bottom: 10px;
+    }
+    .profile-name { font-size: 20px; font-weight: 700; }
+    .profile-level { font-size: 13px; color: var(--teal); margin-top: 2px; }
+    .toast {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: var(--teal); color: #0f1729;
+      padding: 10px 20px; border-radius: 50px;
+      font-weight: 700; font-size: 14px; z-index: 999;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+    /* WELCOME */
+    .welcome {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 100vh;
+      padding: 30px 20px; text-align: center;
+    }
+    .welcome .logo { font-size: 56px; margin-bottom: 16px; }
+    .welcome h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .welcome h2 span { color: var(--teal); }
+    .welcome p { color: var(--text2); font-size: 15px; margin-bottom: 32px; line-height: 1.6; }
+    .welcome-fields { width: 100%; max-width: 300px; }
+    /* ONBOARDING POPUP */
+    .onboarding-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 500; display: flex; align-items: flex-end;
+      justify-content: center; padding-bottom: 0;
+    }
+    .onboarding-sheet {
+      background: var(--card); border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 430px; padding: 28px 24px 40px;
+      animation: slideUp 0.35s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .ob-slide { display: none; }
+    .ob-slide.active { display: block; }
+    .ob-icon { font-size: 52px; text-align: center; margin-bottom: 16px; }
+    .ob-title { font-size: 22px; font-weight: 800; text-align: center; margin-bottom: 10px; }
+    .ob-title span { color: var(--teal); }
+    .ob-text { color: var(--text2); font-size: 14px; line-height: 1.7; text-align: center; margin-bottom: 24px; }
+    .ob-features { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+    .ob-feature {
+      background: var(--card2); border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px; border: 1px solid var(--border);
+    }
+    .ob-feature .f-icon { font-size: 24px; flex-shrink: 0; }
+    .ob-feature .f-text { font-size: 13px; color: var(--text2); }
+    .ob-feature .f-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+    .ob-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all 0.3s; }
+    .ob-dot.active { background: var(--teal); width: 20px; border-radius: 4px; }
+    @media (max-width: 380px) { .pomo-time { font-size: 36px; } }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ONBOARDING OVERLAY (caché par défaut) -->
+<div class="onboarding-overlay" id="onboardingOverlay" style="display:none">
+  <div class="onboarding-sheet">
+    <div class="ob-dots" id="obDots">
+      <div class="ob-dot active" id="dot-ob-0"></div>
+      <div class="ob-dot" id="dot-ob-1"></div>
+      <div class="ob-dot" id="dot-ob-2"></div>
+    </div>
+
+    <!-- Slide 1 : concept -->
+    <div class="ob-slide active" id="ob-slide-0">
+      <div class="ob-icon">🎮</div>
+      <div class="ob-title">Bienvenue sur <span>OptiStudy</span> !</div>
+      <div class="ob-text">
+        L'application qui transforme ta vie étudiante en <strong style="color:var(--teal)">aventure RPG</strong>.<br><br>
+        Chaque bonne habitude que tu prends devient une <strong style="color:var(--teal)">quête</strong> à accomplir. Tu gagnes de l'XP, tu montes de niveau, tu débloques des badges.
+      </div>
+      <button class="btn btn-teal" style="width:100%" onclick="obNext()">Suivant →</button>
+    </div>
+
+    <!-- Slide 2 : système XP -->
+    <div class="ob-slide" id="ob-slide-1">
+      <div class="ob-icon">⚡</div>
+      <div class="ob-title">Le système <span>XP & Niveaux</span></div>
+      <div class="ob-features">
+        <div class="ob-feature">
+          <div class="f-icon">🧠</div>
+          <div class="f-text"><strong>Intelligence</strong>Gagne de l'XP en travaillant : Pomodoro, révisions, exercices…</div>
+        </div>
+        <div class="ob-feature">
+          <div class="f-icon">💚</div>
+          <div class="f-text"><strong>Santé</strong>Gagne de l'XP en mangeant bien : recettes maison, fruits & légumes…</div>
+        </div>
+        <div class="ob-feature">
+          <div class="f-icon">⚡</div>
+          <div class="f-text"><strong>Vitalité</strong>Gagne de l'XP en prenant soin de toi : sommeil, sport, hydratation…</div>
+        </div>
+      </div>
+      <button class="btn btn-teal" style="width:100%" onclick="obNext()">Suivant →</button>
+    </div>
+
+    <!-- Slide 3 : let's go -->
+    <div class="ob-slide" id="ob-slide-2">
+      <div class="ob-icon">🚀</div>
+      <div class="ob-title">C'est parti <span>aventurier</span> !</div>
+      <div class="ob-text">
+        Chaque jour, de nouvelles <strong style="color:var(--teal)">quêtes</strong> t'attendent.<br><br>
+        Valide tes actions réelles → gagne de l'XP → monte de niveau.<br><br>
+        Ton progrès est <strong style="color:var(--teal)">sauvegardé automatiquement</strong>, même si tu fermes l'appli.
+      </div>
+      <button class="btn btn-teal" style="width:100%" onclick="obFinish()">🎮 Commencer l'aventure !</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header" id="mainHeader" style="display:none">
+  <h1>Opti<span>Study</span></h1>
+  <div class="avatar" id="headerAvatar" onclick="navigate('profil')">?</div>
+</div>
+
+<div class="content">
+
+  <!-- WELCOME -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome">
+      <div class="logo">🎮</div>
+      <h2>Bienvenue sur <span>OptiStudy</span></h2>
+      <p>Transforme ta vie étudiante en aventure.<br>Gagne de l'XP, monte de niveau, débloque des badges.</p>
+      <div class="welcome-fields">
+        <input class="input-field" type="text" id="userName" placeholder="Ton prénom..." maxlength="20">
+        <button class="btn btn-teal" style="width:100%;margin-top:4px" onclick="startApp()">Commencer l'aventure 🚀</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div class="screen" id="screen-home">
+    <div class="card">
+      <div class="level-header">
+        <span class="level-num">Niveau <span id="lvlNum">1</span></span>
+        <span class="level-xp" id="totalXPLabel">0 XP total</span>
+      </div>
+      <div class="xp-bar-bg"><div class="xp-bar total" id="globalBar" style="width:0%"></div></div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px" id="nextLvlLabel">500 XP avant le niveau 2</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Compétences</div>
+      <div class="xp-label"><span>🧠 Intelligence</span><span class="val" id="intXPLabel">0 XP</span></div>
+      <div class="xp-bar-bg"><div class="xp-bar int" id="intBar" style="width:0%"></div></div>
+      <div style="margin-bottom:12px"></div>
+      <div class="xp-label"><span>💚 Santé</span><span class="val" id="santeXPLabel">0 XP</span></div>
+      <div class="xp-bar-bg"><div class="xp-bar sante" id="santeBar" style="width:0%"></div></div>
+      <div style="margin-bottom:12px"></div>
+      <div class="xp-label"><span>⚡ Vitalité</span><span class="val" id="vitXPLabel">0 XP</span></div>
+      <div class="xp-bar-bg"><div class="xp-bar vit" id="vitBar" style="width:0%"></div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="icon">⚔️</div><div class="val" id="statQuetes">0</div><div class="lbl">Quêtes</div></div>
+      <div class="stat-box"><div class="icon">📋</div><div class="val" id="statAujourd">0/5</div><div class="lbl">Aujourd'hui</div></div>
+      <div class="stat-box"><div class="icon">🏅</div><div class="val" id="statBadges">0</div><div class="lbl">Badges</div></div>
+    </div>
+    <div class="section-title">Quêtes du jour</div>
+    <div id="questList">
+      <div class="quest" id="q1"><div class="quest-icon">🎯</div><div class="quest-info"><div class="name">Session Focus 25min</div><div class="desc">Complète une session Pomodoro de 25 minutes</div><span class="xp-badge blue">+50 XP</span></div><div class="check-btn" onclick="completeQuest('q1',50,'int')" id="btn-q1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      <div class="quest" id="q2"><div class="quest-icon">📚</div><div class="quest-info"><div class="name">Réviser un chapitre</div><div class="desc">Révise un chapitre de cours pendant 30 minutes</div><span class="xp-badge blue">+60 XP</span></div><div class="check-btn" onclick="completeQuest('q2',60,'int')" id="btn-q2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      <div class="quest" id="q3"><div class="quest-icon">🥗</div><div class="quest-info"><div class="name">Repas équilibré</div><div class="desc">Prépare et mange un repas équilibré</div><span class="xp-badge">+40 XP</span></div><div class="check-btn" onclick="completeQuest('q3',40,'sante')" id="btn-q3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      <div class="quest" id="q4"><div class="quest-icon">💧</div><div class="quest-info"><div class="name">Hydratation</div><div class="desc">Bois 2L d'eau dans la journée</div><span class="xp-badge orange">+30 XP</span></div><div class="check-btn" onclick="completeQuest('q4',30,'vit')" id="btn-q4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      <div class="quest" id="q5"><div class="quest-icon">😴</div><div class="quest-info"><div class="name">Bonne nuit</div><div class="desc">Dors au moins 7h cette nuit</div><span class="xp-badge orange">+35 XP</span></div><div class="check-btn" onclick="completeQuest('q5',35,'vit')" id="btn-q5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    </div>
+  </div>
+
+  <!-- TRAVAIL -->
+  <div class="screen" id="screen-travail">
+    <div class="section-title">⏱ Timer Pomodoro</div>
+    <div class="card">
+      <div class="pomo-container">
+        <div class="pomo-ring">
+          <svg viewBox="0 0 200 200"><circle class="bg-ring" cx="100" cy="100" r="88"/><circle class="progress-ring" cx="100" cy="100" r="88" id="pomoRing"/></svg>
+          <div class="pomo-time" id="pomoTime">25:00</div>
+          <div class="pomo-phase" id="pomoPhase">Prêt à démarrer</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-teal" id="pomoBtnStart" onclick="pomoStart()">▶ Démarrer</button>
+          <button class="btn btn-outline" onclick="pomoReset()">↺ Reset</button>
+        </div>
+        <div class="sessions-count">Sessions complétées : <b id="pomoSessions">0</b> / 4</div>
+        <div class="sessions-dots">
+          <div class="session-dot" id="dot0"></div><div class="session-dot" id="dot1"></div>
+          <div class="session-dot" id="dot2"></div><div class="session-dot" id="dot3"></div>
+        </div>
+      </div>
+    </div>
+    <div class="section-title">📚 Quêtes Travail</div>
+    <div class="quest" id="tq1"><div class="quest-icon">🎯</div><div class="quest-info"><div class="name">Session Focus 25min</div><div class="desc">Lance et termine un Pomodoro complet</div><span class="xp-badge blue">+50 XP Intelligence</span></div><div class="check-btn" id="btn-tq1" onclick="completeQuest('tq1',50,'int')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="quest" id="tq2"><div class="quest-icon">📖</div><div class="quest-info"><div class="name">Fiche de révision</div><div class="desc">Crée une fiche récapitulative de cours</div><span class="xp-badge blue">+45 XP Intelligence</span></div><div class="check-btn" id="btn-tq2" onclick="completeQuest('tq2',45,'int')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="quest" id="tq3"><div class="quest-icon">✏️</div><div class="quest-info"><div class="name">Exercices pratiques</div><div class="desc">Fais 10 exercices d'entraînement</div><span class="xp-badge blue">+55 XP Intelligence</span></div><div class="check-btn" id="btn-tq3" onclick="completeQuest('tq3',55,'int')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+  </div>
+
+  <!-- FOOD -->
+  <div class="screen" id="screen-food">
+    <div class="section-title">🍎 Alimentation Intelligente</div>
+    <div class="card">
+      <div class="card-title">Tes ingrédients disponibles</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input class="input-field" id="ingInput" type="text" placeholder="Ajoute un ingrédient..." style="margin:0;flex:1">
+        <button class="btn btn-teal" style="padding:12px 16px" onclick="addIngredient()">+</button>
+      </div>
+      <div class="ingredient-list" id="ingredientList"></div>
+      <button class="btn btn-purple" style="width:100%" onclick="generateRecipes()">🍳 Générer des recettes</button>
+    </div>
+    <div id="recipesSection" style="display:none">
+      <div class="section-title">Recettes proposées</div>
+      <div id="recipesList"></div>
+    </div>
+    <div class="section-title">🥗 Quêtes Alimentation</div>
+    <div class="quest" id="fq1"><div class="quest-icon">🍳</div><div class="quest-info"><div class="name">Cuisiner maison</div><div class="desc">Prépare un repas fait maison</div><span class="xp-badge">+40 XP Santé</span></div><div class="check-btn" id="btn-fq1" onclick="completeQuest('fq1',40,'sante')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="quest" id="fq2"><div class="quest-icon">🥦</div><div class="quest-info"><div class="name">5 fruits et légumes</div><div class="desc">Mange 5 portions de fruits ou légumes</div><span class="xp-badge">+35 XP Santé</span></div><div class="check-btn" id="btn-fq2" onclick="completeQuest('fq2',35,'sante')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+  </div>
+
+  <!-- BIEN-ÊTRE -->
+  <div class="screen" id="screen-bienetre">
+    <div class="section-title">❤️ Suivi Bien-être</div>
+    <div class="card">
+      <div class="card-title">Suivi d'aujourd'hui</div>
+      <div class="wb-grid">
+        <div class="wb-input-card"><div class="wb-icon">😴</div><div class="wb-lbl">Sommeil (h)</div><div class="stepper"><button class="stepper-btn" onclick="stepperChange('sleep',-0.5)">−</button><div><div class="stepper-val" id="sleepVal">7.5</div><div class="stepper-unit">heures</div></div><button class="stepper-btn" onclick="stepperChange('sleep',0.5)">+</button></div></div>
+        <div class="wb-input-card"><div class="wb-icon">💧</div><div class="wb-lbl">Hydratation (L)</div><div class="stepper"><button class="stepper-btn" onclick="stepperChange('water',-0.25)">−</button><div><div class="stepper-val" id="waterVal">1.5</div><div class="stepper-unit">litres</div></div><button class="stepper-btn" onclick="stepperChange('water',0.25)">+</button></div></div>
+        <div class="wb-input-card"><div class="wb-icon">🏃</div><div class="wb-lbl">Activité (min)</div><div class="stepper"><button class="stepper-btn" onclick="stepperChange('sport',-5)">−</button><div><div class="stepper-val" id="sportVal">0</div><div class="stepper-unit">minutes</div></div><button class="stepper-btn" onclick="stepperChange('sport',5)">+</button></div></div>
+        <div class="wb-input-card"><div class="wb-icon">😊</div><div class="wb-lbl">Humeur</div><div class="stepper"><button class="stepper-btn" onclick="stepperChange('mood',-1)">−</button><div><div class="stepper-val" id="moodVal">😐</div><div class="stepper-unit">humeur</div></div><button class="stepper-btn" onclick="stepperChange('mood',1)">+</button></div></div>
+      </div>
+      <button class="btn btn-teal" style="width:100%" onclick="saveBienetre()">✅ Valider mes stats du jour</button>
+    </div>
+    <div class="section-title">⚡ Quêtes Vitalité</div>
+    <div class="quest" id="bq1"><div class="quest-icon">😴</div><div class="quest-info"><div class="name">Nuit récupératrice</div><div class="desc">Dors 7h ou plus cette nuit</div><span class="xp-badge orange">+35 XP Vitalité</span></div><div class="check-btn" id="btn-bq1" onclick="completeQuest('bq1',35,'vit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="quest" id="bq2"><div class="quest-icon">🏃</div><div class="quest-info"><div class="name">Sport du jour</div><div class="desc">30 min d'activité physique</div><span class="xp-badge orange">+40 XP Vitalité</span></div><div class="check-btn" id="btn-bq2" onclick="completeQuest('bq2',40,'vit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+    <div class="quest" id="bq3"><div class="quest-icon">🧘</div><div class="quest-info"><div class="name">Pause méditation</div><div class="desc">10 min de respiration / méditation</div><span class="xp-badge orange">+25 XP Vitalité</span></div><div class="check-btn" id="btn-bq3" onclick="completeQuest('bq3',25,'vit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+  </div>
+
+  <!-- PROFIL -->
+  <div class="screen" id="screen-profil">
+    <div class="card">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatar">?</div>
+        <div class="profile-name" id="profileName">—</div>
+        <div class="profile-level" id="profileLevelLabel">⭐ Niveau 1 · Débutant</div>
+      </div>
+      <div class="stats-row" style="margin:0">
+        <div class="stat-box"><div class="icon">⚔️</div><div class="val" id="p-quetes">0</div><div class="lbl">Quêtes</div></div>
+        <div class="stat-box"><div class="icon">🏅</div><div class="val" id="p-badges">0</div><div class="lbl">Badges</div></div>
+        <div class="stat-box"><div class="icon">🔥</div><div class="val" id="p-streak">0</div><div class="lbl">Jours streak</div></div>
+      </div>
+    </div>
+    <div class="section-title">🏅 Badges</div>
+    <div class="badges-grid">
+      <div class="badge-item locked" id="badge-focus"><div class="b-icon">🎯</div><div class="b-name">Focalisé</div><div class="b-desc">1ère session Pomodoro</div></div>
+      <div class="badge-item locked" id="badge-chef"><div class="b-icon">👨‍🍳</div><div class="b-name">Chef Étudiant</div><div class="b-desc">Première recette validée</div></div>
+      <div class="badge-item locked" id="badge-sleep"><div class="b-icon">😴</div><div class="b-name">Dormeur Pro</div><div class="b-desc">7h de sommeil validées</div></div>
+      <div class="badge-item locked" id="badge-streak3"><div class="b-icon">🔥</div><div class="b-name">Streak 7j</div><div class="b-desc">7 jours consécutifs</div></div>
+      <div class="badge-item locked" id="badge-lvl10"><div class="b-icon">⭐</div><div class="b-name">Niveau 10</div><div class="b-desc">Atteindre le niveau 10</div></div>
+      <div class="badge-item locked" id="badge-hydro"><div class="b-icon">💧</div><div class="b-name">Hydraté</div><div class="b-desc">2L d'eau validés</div></div>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn btn-outline" style="width:100%" onclick="resetAll()">⚙️ Réinitialiser le profil</button>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav" id="bottomNav" style="display:none">
+  <div class="nav-item active" id="nav-home" onclick="navigate('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</div>
+  <div class="nav-item" id="nav-travail" onclick="navigate('travail')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Travail</div>
+  <div class="nav-item" id="nav-food" onclick="navigate('food')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>Food</div>
+  <div class="nav-item" id="nav-bienetre" onclick="navigate('bienetre')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Bien-être</div>
+  <div class="nav-item" id="nav-profil" onclick="navigate('profil')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profil</div>
+</nav>
+
+<script>
+// ============================================================
+// STATE — tout à zéro au départ
+// ============================================================
+const DEFAULT_STATE = {
+  name: '',
+  xp: { int: 0, sante: 0, vit: 0 },
+  level: 1, totalXP: 0,
+  questsDone: [],   // on sérialise en tableau pour localStorage
+  badges: [],
+  streak: 0,
+  ingredients: [],
+  pomoSessions: 0,
+  sleep: 0, water: 0, sport: 0, mood: 2,
+};
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+const moods = ['😞','😕','😐','😊','😄'];
+
+// ============================================================
+// LOCALSTORAGE — sauvegarde & chargement
+// ============================================================
+function saveState() {
+  try {
+    const toSave = {
+      name: state.name,
+      xp: state.xp,
+      level: state.level,
+      totalXP: state.totalXP,
+      questsDone: [...state.questsDone],
+      badges: [...state.badges],
+      streak: state.streak,
+      ingredients: state.ingredients,
+      pomoSessions: state.pomoSessions,
+      sleep: state.sleep, water: state.water,
+      sport: state.sport, mood: state.mood,
+    };
+    localStorage.setItem('optistudy_save', JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('optistudy_save');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    state.name       = saved.name || '';
+    state.xp         = saved.xp  || { int:0, sante:0, vit:0 };
+    state.level      = saved.level || 1;
+    state.totalXP    = saved.totalXP || 0;
+    state.questsDone = new Set(saved.questsDone || []);
+    state.badges     = new Set(saved.badges || []);
+    state.streak     = saved.streak || 0;
+    state.ingredients= saved.ingredients || [];
+    state.pomoSessions = saved.pomoSessions || 0;
+    state.sleep  = saved.sleep  ?? 0;
+    state.water  = saved.water  ?? 0;
+    state.sport  = saved.sport  ?? 0;
+    state.mood   = saved.mood   ?? 2;
+    return !!state.name;
+  } catch(e) { return false; }
+}
+
+// ============================================================
+// ONBOARDING
+// ============================================================
+let obStep = 0;
+function obNext() {
+  obStep++;
+  document.querySelectorAll('.ob-slide').forEach((s,i) => s.classList.toggle('active', i === obStep));
+  document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('active', i === obStep));
+}
+function obFinish() {
+  document.getElementById('onboardingOverlay').style.display = 'none';
+  launchApp();
+}
+
+// ============================================================
+// DÉMARRAGE
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Init pomodoro ring
+  document.getElementById('pomoRing').style.strokeDasharray = CIRCUMFERENCE;
+  document.getElementById('pomoRing').style.strokeDashoffset = 0;
+  document.getElementById('ingInput').addEventListener('keydown', e => { if(e.key==='Enter') addIngredient(); });
+
+  const hasSave = loadState();
+  if (hasSave) {
+    // Retour d'un utilisateur existant → on saute l'écran welcome
+    launchApp();
+  }
+  // Sinon on reste sur l'écran welcome
+});
+
+function startApp() {
+  const n = document.getElementById('userName').value.trim() || 'Étudiant';
+  state.name = n;
+  state.questsDone = new Set();
+  state.badges = new Set();
+  saveState();
+  // Affiche l'onboarding
+  document.getElementById('onboardingOverlay').style.display = 'flex';
+  obStep = 0;
+  document.querySelectorAll('.ob-slide').forEach((s,i) => s.classList.toggle('active', i===0));
+  document.querySelectorAll('.ob-dot').forEach((d,i) => d.classList.toggle('active', i===0));
+}
+
+function launchApp() {
+  // Met à jour les éléments avec le nom
+  const initial = (state.name || '?')[0].toUpperCase();
+  document.getElementById('headerAvatar').textContent = initial;
+  document.getElementById('profileAvatar').textContent = initial;
+  document.getElementById('profileName').textContent = state.name;
+
+  // Affiche l'interface principale
+  document.getElementById('screen-welcome').classList.remove('active');
+  document.getElementById('mainHeader').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+
+  // Restaure les quêtes et badges visuellement
+  state.questsDone.forEach(id => {
+    const btn = document.getElementById('btn-' + id);
+    const el  = document.getElementById(id);
+    if (btn) btn.classList.add('done');
+    if (el)  el.classList.add('done');
+  });
+  state.badges.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('locked');
+  });
+
+  // Restore bien-être steppers
+  document.getElementById('sleepVal').textContent = state.sleep;
+  document.getElementById('waterVal').textContent = state.water;
+  document.getElementById('sportVal').textContent = state.sport;
+  document.getElementById('moodVal').textContent  = moods[state.mood];
+
+  // Restore ingredients
+  renderIngredients();
+
+  // Restore pomodoro sessions
+  updateSessionDots();
+
+  navigate('home');
+  updateUI();
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  const navEl = document.getElementById('nav-' + screen);
+  if (navEl) navEl.classList.add('active');
+}
+
+// ============================================================
+// XP & LEVEL
+// ============================================================
+function addXP(amount, type) {
+  if (amount <= 0) return;
+  state.xp[type] += amount;
+  state.totalXP  += amount;
+  while (state.totalXP >= state.level * 500) {
+    state.level++;
+    showToast('🎉 Niveau ' + state.level + ' atteint !');
+    if (state.level >= 10) unlockBadge('badge-lvl10');
+  }
+  updateUI();
+  saveState();
+}
+
+function updateUI() {
+  const minXP = (state.level - 1) * 500;
+  const maxXP = state.level * 500;
+  const pct = Math.min(((state.totalXP - minXP) / 500) * 100, 100);
+  document.getElementById('lvlNum').textContent      = state.level;
+  document.getElementById('totalXPLabel').textContent = state.totalXP + ' XP total';
+  document.getElementById('globalBar').style.width   = pct + '%';
+  document.getElementById('nextLvlLabel').textContent = Math.max(maxXP - state.totalXP, 0) + ' XP avant le niveau ' + (state.level + 1);
+  const maxSkill = 1500;
+  document.getElementById('intXPLabel').textContent  = state.xp.int + ' XP';
+  document.getElementById('intBar').style.width      = Math.min((state.xp.int / maxSkill) * 100, 100) + '%';
+  document.getElementById('santeXPLabel').textContent= state.xp.sante + ' XP';
+  document.getElementById('santeBar').style.width    = Math.min((state.xp.sante / maxSkill) * 100, 100) + '%';
+  document.getElementById('vitXPLabel').textContent  = state.xp.vit + ' XP';
+  document.getElementById('vitBar').style.width      = Math.min((state.xp.vit / maxSkill) * 100, 100) + '%';
+  const todayDone = [...state.questsDone].filter(q => ['q1','q2','q3','q4','q5'].includes(q)).length;
+  document.getElementById('statQuetes').textContent   = state.questsDone.size;
+  document.getElementById('statAujourd').textContent  = todayDone + '/5';
+  document.getElementById('statBadges').textContent   = state.badges.size;
+  document.getElementById('p-quetes').textContent     = state.questsDone.size;
+  document.getElementById('p-badges').textContent     = state.badges.size;
+  document.getElementById('p-streak').textContent     = state.streak;
+  document.getElementById('profileLevelLabel').textContent = '⭐ Niveau ' + state.level + ' · ' + getLevelTitle();
+}
+
+function getLevelTitle() {
+  if (state.level < 3)  return 'Débutant';
+  if (state.level < 6)  return 'Apprenti';
+  if (state.level < 10) return 'Étudiant Expert';
+  return 'Maître Étudiant';
+}
+
+// ============================================================
+// QUÊTES
+// ============================================================
+function completeQuest(id, xp, type) {
+  if (state.questsDone.has(id)) return;
+  state.questsDone.add(id);
+  const btn = document.getElementById('btn-' + id);
+  const el  = document.getElementById(id);
+  if (btn) btn.classList.add('done');
+  if (el)  el.classList.add('done');
+  if (xp > 0) {
+    addXP(xp, type);
+    showToast('+' + xp + ' XP ' + (type==='int' ? '🧠' : type==='sante' ? '💚' : '⚡'));
+  }
+  saveState();
+}
+
+// ============================================================
+// POMODORO
+// ============================================================
+const POMO_WORK = 25 * 60, POMO_BREAK = 5 * 60;
+const CIRCUMFERENCE = 2 * Math.PI * 88;
+let pomoRunning = false, pomoInterval = null, pomoSeconds = POMO_WORK, pomoBreak = false;
+
+function pomoStart() {
+  if (pomoRunning) {
+    clearInterval(pomoInterval); pomoRunning = false;
+    document.getElementById('pomoBtnStart').textContent = '▶ Reprendre'; return;
+  }
+  pomoRunning = true;
+  document.getElementById('pomoBtnStart').textContent = '⏸ Pause';
+  document.getElementById('pomoPhase').textContent = pomoBreak ? 'Pause en cours...' : 'Session de travail...';
+  pomoInterval = setInterval(() => {
+    pomoSeconds--;
+    updatePomoClock();
+    if (pomoSeconds <= 0) {
+      clearInterval(pomoInterval); pomoRunning = false;
+      if (!pomoBreak) {
+        state.pomoSessions++;
+        updateSessionDots(); saveState();
+        showToast('🎉 Session terminée ! +50 XP 🧠');
+        addXP(50, 'int');
+        completeQuest('q1', 0, 'int'); completeQuest('tq1', 0, 'int');
+        unlockBadge('badge-focus');
+        pomoBreak = true; pomoSeconds = POMO_BREAK;
+        document.getElementById('pomoBtnStart').textContent = '▶ Pause (5min)';
+        document.getElementById('pomoPhase').textContent = 'Pause méritée !';
+      } else {
+        pomoBreak = false; pomoSeconds = POMO_WORK;
+        document.getElementById('pomoBtnStart').textContent = '▶ Nouvelle session';
+        document.getElementById('pomoPhase').textContent = 'Prêt pour la suite !';
+      }
+      updatePomoClock();
+    }
+  }, 1000);
+}
+
+function pomoReset() {
+  clearInterval(pomoInterval); pomoRunning = false; pomoBreak = false; pomoSeconds = POMO_WORK;
+  document.getElementById('pomoBtnStart').textContent = '▶ Démarrer';
+  document.getElementById('pomoPhase').textContent = 'Prêt à démarrer';
+  updatePomoClock();
+}
+
+function updatePomoClock() {
+  const total = pomoBreak ? POMO_BREAK : POMO_WORK;
+  const offset = CIRCUMFERENCE * (1 - pomoSeconds / total);
+  document.getElementById('pomoRing').style.strokeDashoffset = offset;
+  const m = Math.floor(pomoSeconds / 60), s = pomoSeconds % 60;
+  document.getElementById('pomoTime').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function updateSessionDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('dot' + i).classList.toggle('done', i < state.pomoSessions);
+  document.getElementById('pomoSessions').textContent = state.pomoSessions;
+}
+
+// ============================================================
+// FOOD
+// ============================================================
+const RECIPES_DB = {
+  'pâtes,tomates,ail':   { title: "Pâtes à l'arrabbiata", time: '20 min', steps: '1. Faire bouillir les pâtes. 2. Faire revenir l\'ail. 3. Ajouter les tomates. 4. Mélanger.', xp: 40 },
+  'oeufs,fromage':        { title: 'Omelette au fromage',    time: '10 min', steps: '1. Battre les œufs. 2. Chauffer la poêle. 3. Verser les œufs. 4. Ajouter le fromage.', xp: 35 },
+  'riz,légumes':          { title: 'Riz sauté aux légumes',  time: '15 min', steps: '1. Cuire le riz. 2. Sauter les légumes. 3. Mélanger. 4. Assaisonner.', xp: 38 },
+  'pain,avocat':          { title: 'Toast avocat',            time: '5 min',  steps: '1. Toaster le pain. 2. Écraser l\'avocat. 3. Tartiner. 4. Saler, poivrer.', xp: 30 },
+  'banane,lait,avoine':   { title: 'Smoothie bowl',          time: '5 min',  steps: '1. Mixer la banane avec le lait. 2. Verser dans un bol. 3. Ajouter les flocons. 4. Garnir.', xp: 32 },
+};
+
+function addIngredient() {
+  const input = document.getElementById('ingInput');
+  const val = input.value.trim().toLowerCase();
+  if (!val || state.ingredients.includes(val)) { input.value = ''; return; }
+  state.ingredients.push(val); input.value = '';
+  renderIngredients(); saveState();
+}
+function removeIngredient(ing) {
+  state.ingredients = state.ingredients.filter(i => i !== ing);
+  renderIngredients(); saveState();
+}
+function renderIngredients() {
+  document.getElementById('ingredientList').innerHTML = state.ingredients.map(ing =>
+    `<div class="ingredient-tag">${ing} <span onclick="removeIngredient('${ing}')">×</span></div>`).join('');
+}
+function generateRecipes() {
+  let found = [];
+  for (const [key, recipe] of Object.entries(RECIPES_DB)) {
+    const matches = key.split(',').filter(n => state.ingredients.some(u => u.includes(n) || n.includes(u))).length;
+    if (matches > 0) found.push({ recipe, matches });
+  }
+  found.sort((a,b) => b.matches - a.matches);
+  if (!found.length) found = Object.values(RECIPES_DB).slice(0,2).map(recipe => ({ recipe }));
+  document.getElementById('recipesList').innerHTML = found.slice(0,3).map(f => `
+    <div class="recipe-card">
+      <div class="r-title">${f.recipe.title}</div><div class="r-time">⏱ ${f.recipe.time}</div>
+      <div class="r-steps">${f.recipe.steps}</div>
+      <div class="r-xp"><span class="xp-badge">+${f.recipe.xp} XP Santé</span>
+      <button class="btn btn-teal" style="padding:8px 16px;font-size:12px" onclick="validateRecipe(${f.recipe.xp})">✅ J'ai préparé ça !</button></div>
+    </div>`).join('');
+  document.getElementById('recipesSection').style.display = 'block';
+}
+function validateRecipe(xp) {
+  addXP(xp, 'sante');
+  showToast('👨‍🍳 Délicieux ! +' + xp + ' XP Santé');
+  unlockBadge('badge-chef');
+  completeQuest('fq1', 0, 'sante');
+}
+
+// ============================================================
+// BIEN-ÊTRE
+// ============================================================
+function stepperChange(field, delta) {
+  if (field === 'mood') {
+    state.mood = Math.max(0, Math.min(4, state.mood + delta));
+    document.getElementById('moodVal').textContent = moods[state.mood];
+  } else {
+    state[field] = Math.max(0, Math.round((state[field] + delta) * 100) / 100);
+    document.getElementById(field + 'Val').textContent = state[field];
+  }
+  saveState();
+}
+function saveBienetre() {
+  let xp = 0;
+  if (state.sleep >= 7) { xp += 35; unlockBadge('badge-sleep'); completeQuest('bq1', 0, 'vit'); }
+  if (state.water >= 2) { xp += 20; unlockBadge('badge-hydro'); }
+  if (state.sport >= 30){ xp += 30; completeQuest('bq2', 0, 'vit'); }
+  if (xp > 0) { addXP(xp, 'vit'); showToast('⚡ +' + xp + ' XP Vitalité !'); }
+  else showToast('✅ Stats du jour enregistrées !');
+  saveState();
+}
+
+// ============================================================
+// BADGES
+// ============================================================
+function unlockBadge(id) {
+  const el = document.getElementById(id);
+  if (el && el.classList.contains('locked')) {
+    el.classList.remove('locked');
+    state.badges.add(id);
+    showToast('🏅 Badge débloqué : ' + el.querySelector('.b-name').textContent);
+    updateUI(); saveState();
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// RESET
+// ============================================================
+function resetAll() {
+  if (!confirm('Réinitialiser complètement le profil ? Toute ta progression sera perdue.')) return;
+  localStorage.removeItem('optistudy_save');
+  location.reload();
+}
+</script>
+</body>
+</html>
